@@ -1,5 +1,6 @@
-c100setup
-c100grab
-c100send
-backup-*.json
 .DS_Store
+backup-*.json
+# macos-bridge のビルド成果物（ソースのみ配布する）
+macos-bridge/c100setup
+macos-bridge/c100grab
+macos-bridge/c100send
