@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MIDI配列変更ページ</title>
+<title>MIDI Layout Editor</title>
 <style>
 :root { --bg:#111318; --card:#1b1f27; --fg:#e8eaed; --sub:#9aa4b2;
         --accent:#ff6b35; --ok:#3ddc84; --err:#ff5c5c; --line:#2a303b; }
@@ -44,6 +44,14 @@ label { color:var(--sub); font-size:14px; }
 input[type=number] { width:80px; padding:8px; border-radius:6px; border:1px solid #3a4250;
   background:#0d0f13; color:var(--fg); font-size:15px; font-family:inherit; }
 a { color:var(--accent); }
+#lang { display:flex; gap:0; margin:0 0 22px; }
+#lang button { padding:6px 16px; font-size:13px; font-family:inherit; cursor:pointer;
+  background:#1b1f27; color:var(--sub); border:1px solid var(--line); }
+#lang button:first-child { border-radius:7px 0 0 7px; }
+#lang button:last-child { border-radius:0 7px 7px 0; border-left:0; }
+#lang button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+html:not(.en) .en { display:none !important; }
+html.en .ja { display:none !important; }
 hr { border:0; border-top:1px solid var(--line); margin:30px 0; }
 code { background:#0d0f13; padding:2px 6px; border-radius:4px; font-size:13px; }
 </style>
@@ -51,29 +59,43 @@ code { background:#0d0f13; padding:2px 6px; border-radius:4px; font-size:13px; }
 <body>
 <div class="wrap">
 
-<h1>MIDI配列変更ページ</h1>
-<p class="sub">Keychron C100 8K の、どのキーがどの音を鳴らすかを自由に変えられます。</p>
+<h1><span class="ja">MIDI配列変更ページ</span><span class="en">MIDI Layout Editor</span></h1>
+<div id="lang"><button id="btn-ja">日本語</button><button id="btn-en">English</button></div>
+<p class="sub"><span class="ja">Keychron C100 8K の、どのキーがどの音を鳴らすかを自由に変えられます。</span><span class="en">Change which note each key on the Keychron C100 8K sends.</span></p>
 
 <div class="card warn">
-  <strong>使う前に</strong>
-  <ul style="margin:10px 0 0; padding-left:1.2em;">
-    <li>先に <a href="./">MIDIコントローラーにするページ</a> で書き込みを済ませてください</li>
-    <li><strong>Chrome / Edge</strong> で開いてください</li>
-    <li>Keychron Launcher を開いていると接続できません。閉じてください</li>
-    <li><strong>書き込みモードに入る必要はありません。</strong>普通に挿したままで変更できます</li>
-  </ul>
+  <div class="ja">
+    <strong>使う前に</strong>
+    <ul style="margin:10px 0 0; padding-left:1.2em;">
+      <li>先に <a href="./">MIDIコントローラーにするページ</a> で書き込みを済ませてください</li>
+      <li><strong>Chrome / Edge</strong> で開いてください</li>
+      <li>Keychron Launcher を開いていると接続できません。閉じてください</li>
+      <li><strong>書き込みモードに入る必要はありません。</strong>普通に挿したままで変更できます</li>
+    </ul>
+  </div>
+  <div class="en">
+    <strong>Before you start</strong>
+    <ul style="margin:10px 0 0; padding-left:1.2em;">
+      <li>Flash the keyboard first on the <a href="./">MIDI controller page</a></li>
+      <li>Use <strong>Chrome or Edge</strong></li>
+      <li>Close Keychron Launcher — it holds the connection this page needs</li>
+      <li><strong>No flashing mode needed.</strong> Just leave the keyboard plugged in normally</li>
+    </ul>
+  </div>
 </div>
 
 <div class="card">
   <div class="row">
-    <button class="go" id="connect">キーボードにつなぐ</button>
-    <span class="sub" id="state">未接続</span>
+    <button class="go" id="connect"><span class="ja">キーボードにつなぐ</span><span class="en">Connect keyboard</span></button>
+    <span class="sub" id="state"><span class="ja">未接続</span><span class="en">Not connected</span></span>
   </div>
 
   <div id="editor" hidden>
-    <h3>並び</h3>
-    <p class="sub">マスをクリックして選び、下の欄で音を決めます。<br>
-    手前が下、奥が上。実物のキーボードと同じ向きです。</p>
+    <h3><span class="ja">並び</span><span class="en">Layout</span></h3>
+    <p class="sub"><span class="ja">マスをクリックして選び、下の欄で音を決めます。<br>
+    手前が下、奥が上。実物のキーボードと同じ向きです。</span>
+    <span class="en">Click a pad to select it, then set its note in the bar below.<br>
+    The grid matches the keyboard: nearest row at the bottom.</span></p>
     <div id="grid"></div>
 
     <div id="editbar">
@@ -86,17 +108,17 @@ code { background:#0d0f13; padding:2px 6px; border-radius:4px; font-size:13px; }
       </div>
     </div>
 
-    <h3>プリセット</h3>
+    <h3><span class="ja">プリセット</span><span class="en">Presets</span></h3>
     <div class="row" style="margin-bottom:6px">
-      <button class="sec" id="p-mf64">フィンガードラム研究所式</button>
-      <button class="sec" id="p-chrom">左下から順番</button>
-      <button class="sec" id="p-reload">キーボードから読み込む</button>
+      <button class="sec" id="p-mf64"><span class="ja">フィンガードラム研究所式</span><span class="en">FingerDrum Labo layout</span></button>
+      <button class="sec" id="p-chrom"><span class="ja">左下から順番</span><span class="en">In order from bottom-left</span></button>
+      <button class="sec" id="p-reload"><span class="ja">キーボードから読み込む</span><span class="en">Read from keyboard</span></button>
     </div>
-    <p class="sub" id="presetnote">プリセットを選んでから、必要なところだけ直すのが早いです。</p>
+    <p class="sub"><span class="ja">プリセットを選んでから、必要なところだけ直すのが早いです。</span><span class="en">Start from a preset, then adjust only the pads you need.</span></p>
 
     <hr>
     <div class="row">
-      <button class="go" id="write">キーボードに書き込む</button>
+      <button class="go" id="write"><span class="ja">キーボードに書き込む</span><span class="en">Write to keyboard</span></button>
       <span class="sub" id="dupinfo"></span>
     </div>
   </div>
@@ -104,8 +126,8 @@ code { background:#0d0f13; padding:2px 6px; border-radius:4px; font-size:13px; }
   <div id="msg"></div>
 </div>
 
-<h3>困ったとき</h3>
-<p class="sub">
+<h3><span class="ja">困ったとき</span><span class="en">If something goes wrong</span></h3>
+<p class="sub ja">
 <strong>つながらない</strong><br>
 Keychron Launcher が開いていませんか。閉じてから、もう一度お試しください。<br><br>
 <strong>音が変わらない</strong><br>
@@ -113,15 +135,65 @@ Keychron Launcher が開いていませんか。閉じてから、もう一度�
 <strong>元に戻したい</strong><br>
 「フィンガードラム研究所式」を選んで書き込めば、最初の並びに戻ります。
 </p>
+<p class="sub en">
+<strong>It won't connect</strong><br>
+Is Keychron Launcher open? Close it and try again.<br><br>
+<strong>The notes didn't change</strong><br>
+Try restarting your DAW after writing.<br><br>
+<strong>I want the original layout back</strong><br>
+Choose "FingerDrum Labo layout" and write it — that restores the default.
+</p>
 
 <p class="sub" style="margin-top:36px">
-作成: <a href="https://www.youtube.com/@FingerDrumLabo">FingerDrum研究所</a> ／
-<a href="./">書き込みページに戻る</a>
+<span class="ja">作成: </span><span class="en">Made by </span>
+<a href="https://www.youtube.com/@FingerDrumLabo">FingerDrum Labo</a> ／
+<a href="./"><span class="ja">書き込みページに戻る</span><span class="en">back to the flashing page</span></a>
 </p>
 
 </div>
 
 <script>
+const T = {
+  loaded:   ["読み込みました。マスをクリックして音を変えてください。",
+             "Loaded. Click a pad to change its note."],
+  readOk:   ["キーボードから読み込みました。", "Read from the keyboard."],
+  readErr:  ["読み込めませんでした。", "Could not read from the keyboard. "],
+  noBrowser:["このブラウザでは動きません。Chrome か Edge で開いてください。",
+             "This browser is not supported. Please use Chrome or Edge."],
+  notPicked:["キーボードが選ばれませんでした。", "No keyboard was selected."],
+  connErr:  ["つなげませんでした。\n", "Could not connect.\n"],
+  connHint: ["\n\nKeychron Launcher を閉じてから、もう一度お試しください。",
+             "\n\nClose Keychron Launcher and try again."],
+  noReply:  ["キーボードから応答がありません", "No response from the keyboard"],
+  presetA:  ["フィンガードラム研究所式にしました。書き込むボタンを押すと反映されます。",
+             "Switched to the FingerDrum Labo layout. Press write to apply it."],
+  presetB:  ["左下から順番に並べました（24〜123）。書き込むボタンを押すと反映されます。",
+             "Arranged in order from the bottom-left (24-123). Press write to apply it."],
+  writing:  ["書き込んでいます... ", "Writing... "],
+  wrote:    ["書き込みました。\n\nそのまま叩いて確かめてください。\nDAW によっては開き直しが必要です。",
+             "Done.\n\nTry playing it. Some DAWs need to be restarted."],
+  writeErr: ["書き込みに失敗しました。\n", "Writing failed.\n"],
+  writeHint:["\n\nUSBを挿し直して、もう一度お試しください。",
+             "\n\nPlug the USB cable back in and try again."],
+  dupA:     ["⚠ 同じ音が重なっているマスが ", "⚠ Duplicate notes on "],
+  dupB:     [" 個あります", " pads"],
+  connected:["接続中: ", "Connected: "],
+  where:    ["下から %r 段目 ・ 左から %c 列目", "row %r from the bottom, column %c from the left"]
+};
+let LANG = 0;
+const t = k => T[k][LANG];
+function setLang(en) {
+  LANG = en ? 1 : 0;
+  document.documentElement.classList.toggle("en", !!en);
+  document.documentElement.lang = en ? "en" : "ja";
+  document.getElementById("btn-ja").classList.toggle("on", !en);
+  document.getElementById("btn-en").classList.toggle("on", !!en);
+  try { localStorage.setItem("c100lang", en ? "en" : "ja"); } catch (e) {}
+  if (typeof notes !== "undefined" && notes.length) sync();
+  const m = document.getElementById("msg");
+  if (m) { m.textContent = ""; m.className = ""; }   // 前の言語の文言を残さない
+}
+
 const VID = 0x3434, PID = 0x042C, USAGE_PAGE = 0xFF60;
 const ROWS = 10, COLS = 10;
 const PAD_FIRST = 0x7E40;              // ファームウェア側の基準値
@@ -147,7 +219,7 @@ function ask(bytes, timeout = 800) {
     };
     const timer = setTimeout(() => {
       device.removeEventListener("inputreport", onReport);
-      reject(new Error("キーボードから応答がありません"));
+      reject(new Error(t("noReply")));
     }, timeout);
     device.addEventListener("inputreport", onReport);
     const out = new Uint8Array(32);
@@ -205,13 +277,13 @@ function draw() {
     el.onclick = () => { selected = i; sync(); };
     g.appendChild(el);
   });
-  $("dupinfo").textContent = dup ? `⚠ 同じ音が重なっているマスが ${dup} 個あります` : "";
+  $("dupinfo").textContent = dup ? (t("dupA") + dup + t("dupB")) : "";
   $("dupinfo").className = dup ? "err" : "sub";
 }
 function sync() {
   const n = notes[selected];
   const r = Math.floor(selected / COLS), c = selected % COLS;
-  $("where").textContent = `下から ${ROWS - r} 段目 ・ 左から ${c + 1} 列目`;
+  $("where").textContent = t("where").replace("%r", ROWS - r).replace("%c", c + 1);
   $("note").value = n < 0 ? "" : n;
   $("notename").textContent = n < 0 ? "—" : noteName(n);
   draw();
@@ -247,36 +319,35 @@ $("note").addEventListener("input", e => {
 });
 $("plus").onclick  = () => { notes[selected] = Math.min(127, (notes[selected] < 0 ? 35 : notes[selected]) + 1); sync(); };
 $("minus").onclick = () => { notes[selected] = Math.max(0,   (notes[selected] < 0 ? 37 : notes[selected]) - 1); sync(); };
-$("p-mf64").onclick  = () => { presetMF64(); showBanks = true;  sync(); say("フィンガードラム研究所式にしました。書き込むボタンを押すと反映されます。"); };
-$("p-chrom").onclick = () => { presetChrom(); showBanks = false; sync(); say("左下から順番に並べました（24〜123）。書き込むボタンを押すと反映されます。"); };
+$("p-mf64").onclick  = () => { presetMF64(); showBanks = true;  sync(); say(t("presetA")); };
+$("p-chrom").onclick = () => { presetChrom(); showBanks = false; sync(); say(t("presetB")); };
 $("p-reload").onclick = async () => {
   try { notes = await readLayer0(); showBanks = isMF64(notes); sync();
-        say("キーボードから読み込みました。"); }
-  catch (e) { say("読み込めませんでした。" + e.message, "err"); }
+        say(t("readOk")); }
+  catch (e) { say(t("readErr") + e.message, "err"); }
 };
 
 if (!navigator.hid) {
   $("connect").disabled = true;
-  say("このブラウザでは動きません。Chrome か Edge で開いてください。", "err");
+  say(t("noBrowser"), "err");
 }
 
 $("connect").onclick = async () => {
   try {
     const list = await navigator.hid.requestDevice({
       filters: [{ vendorId: VID, productId: PID, usagePage: USAGE_PAGE, usage: 0x61 }] });
-    if (!list.length) { say("キーボードが選ばれませんでした。", "err"); return; }
+    if (!list.length) { say(t("notPicked"), "err"); return; }
     device = list[0];
     if (!device.opened) await device.open();
-    $("state").textContent = "接続中: " + device.productName;
+    $("state").textContent = t("connected") + device.productName;
     notes = await readLayer0();
     showBanks = isMF64(notes);
     selected = 90;                    // 左下から始める
     $("editor").hidden = false;
     sync();
-    say("読み込みました。マスをクリックして音を変えてください。", "ok");
+    say(t("loaded"), "ok");
   } catch (e) {
-    say("つなげませんでした。\n" + (e.message || e) +
-        "\n\nKeychron Launcher を閉じてから、もう一度お試しください。", "err");
+    say(t("connErr") + (e.message || e) + t("connHint"), "err");
   }
 };
 
@@ -289,15 +360,22 @@ $("write").onclick = async () => {
       const kc = PAD_FIRST + n;
       const r = Math.floor(i / COLS), c = i % COLS;
       await ask([CMD_SET_KEYCODE, 0, r, c, (kc >> 8) & 0xFF, kc & 0xFF], 1200);
-      if (i % 10 === 9) say(`書き込んでいます... ${i + 1} / 100`);
+      if (i % 10 === 9) say(t("writing") + (i + 1) + " / 100");
     }
-    say("書き込みました。\n\nそのまま叩いて確かめてください。\nDAW によっては開き直しが必要です。", "ok");
+    say(t("wrote"), "ok");
   } catch (e) {
-    say("書き込みに失敗しました。\n" + (e.message || e) +
-        "\n\nUSBを挿し直して、もう一度お試しください。", "err");
+    say(t("writeErr") + (e.message || e) + t("writeHint"), "err");
   }
   $("write").disabled = false;
 };
+
+document.getElementById("btn-ja").onclick = () => setLang(false);
+document.getElementById("btn-en").onclick = () => setLang(true);
+(function () {
+  let saved = null;
+  try { saved = localStorage.getItem("c100lang"); } catch (e) {}
+  setLang(saved ? saved === "en" : !(navigator.language || "").toLowerCase().startsWith("ja"));
+})();
 </script>
 </body>
 </html>
