@@ -15,3 +15,20 @@
 
 ファームウェアを更新したら、`index.html` の `FIRMWARE_B64` を
 新しい `.bin` の base64 に差し替えてください。
+
+## 免責事項の根拠（2026-09-03 確認）
+
+ページ下部の「メーカー保証の対象外となる場合があります」という記載は、
+Keychron 公式の保証規定に基づく。 https://www.keychron.com/pages/warranty
+
+- 「Keychron が許可していないソフトウェアの改変を行った場合、保証は終了する」
+  （the warranty will cease if you make modifications in the software not
+  authorized by Keychron）
+- 対象外項目に「非純正の修理・改造に起因する不具合」（non-factory
+  repairs/modifications）
+
+ただし Keychron 自身が QMK のソースと書き込み手順を公開しているため、
+「公式ファームウェアの書き込み」と「第三者製ファームウェアの書き込み」で
+扱いが異なる可能性がある。**この点は Keychron に確認していない。**
+規定の文面は断定形だが、ページの記載は「場合があります」と留めてあり、
+確認できていない範囲を断定しない表現になっている。
