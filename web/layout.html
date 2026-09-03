@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Keychron C100 8K の音を並べ替えるページ</title>
+<style>
+:root { --bg:#111318; --card:#1b1f27; --fg:#e8eaed; --sub:#9aa4b2;
+        --accent:#ff6b35; --ok:#3ddc84; --err:#ff5c5c; --line:#2a303b; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-size:16px; line-height:1.8;
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif; }
+.wrap { max-width:820px; margin:0 auto; padding:40px 20px 80px; }
+h1 { font-size:24px; line-height:1.5; margin:0 0 24px; }
+h3 { margin:28px 0 10px; font-size:17px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:22px; margin:18px 0; }
+.warn { border-color:#5a3a1a; background:#241a10; }
+.warn strong { color:#ffb066; }
+button { font-family:inherit; font-size:15px; border-radius:8px; cursor:pointer; border:0; }
+button.go { padding:16px 20px; font-size:17px; font-weight:700; color:#fff; background:var(--accent); }
+button.go:disabled { background:#3a4250; color:#7c8797; cursor:not-allowed; }
+button.sec { padding:9px 14px; background:#2a303b; color:var(--fg); border:1px solid #3a4250; }
+button.sec:hover { background:#333a49; }
+.row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+#grid { display:grid; grid-template-columns:repeat(10, 1fr); gap:4px; margin:18px 0;
+  max-width:620px; touch-action:manipulation; }
+.pad { aspect-ratio:1; border-radius:7px; background:#31384a; border:1px solid #3d465c;
+  color:#e8eaed; font-size:12px; line-height:1.2; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; cursor:pointer; padding:0; }
+.pad .nm { font-size:10px; color:#94a0b4; }
+.pad.sel { background:var(--accent); border-color:#ffb199; color:#fff; }
+.pad.sel .nm { color:#ffe2d6; }
+.pad.dup { border-color:var(--err); }
+.pad.bank0{background:#2b3b52}.pad.bank1{background:#2b4a3f}
+.pad.bank2{background:#4a3a2b}.pad.bank3{background:#432b4a}
+.pad.sel { background:var(--accent) !important; }
+#editbar { position:sticky; bottom:0; z-index:5; margin:0 -22px;
+  padding:12px 22px; background:#161a22; border-top:1px solid var(--line); }
+.nname { font-weight:700; color:var(--accent); min-width:56px; }
+#msg { margin-top:14px; white-space:pre-wrap; }
+.ok { color:var(--ok); font-weight:700; } .err { color:var(--err); font-weight:700; }
+.sub { color:var(--sub); font-size:14px; }
+label { color:var(--sub); font-size:14px; }
+input[type=number] { width:80px; padding:8px; border-radius:6px; border:1px solid #3a4250;
+  background:#0d0f13; color:var(--fg); font-size:15px; font-family:inherit; }
+a { color:var(--accent); }
+hr { border:0; border-top:1px solid var(--line); margin:30px 0; }
+code { background:#0d0f13; padding:2px 6px; border-radius:4px; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Keychron C100 8K の音を並べ替えるページ</h1>
+<p class="sub">どのキーがどの音を鳴らすかを、ここで自由に変えられます。<br>
+書き込みモードに入る必要はありません。<strong>普通に挿したままで変更できます。</strong></p>
+
+<div class="card warn">
+  <strong>使う前に</strong>
+  <ul style="margin:10px 0 0; padding-left:1.2em;">
+    <li>先に <a href="./">MIDIコントローラーにするページ</a> で書き込みを済ませてください</li>
+    <li><strong>Chrome / Edge</strong> で開いてください</li>
+    <li>Keychron Launcher を開いていると接続できません。閉じてください</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div class="row">
+    <button class="go" id="connect">キーボードにつなぐ</button>
+    <span class="sub" id="state">未接続</span>
+  </div>
+
+  <div id="editor" hidden>
+    <h3>並び</h3>
+    <p class="sub">マスをクリックして選び、下の欄で音を決めます。<br>
+    手前が下、奥が上。実物のキーボードと同じ向きです。</p>
+    <div id="grid"></div>
+
+    <div id="editbar">
+      <div class="row">
+        <span class="sub" id="where">—</span>
+        <input type="number" id="note" min="0" max="127" step="1">
+        <span id="notename" class="nname">—</span>
+        <button class="sec" id="minus">− 1</button>
+        <button class="sec" id="plus">+ 1</button>
+      </div>
+    </div>
+
+    <h3>プリセット</h3>
+    <div class="row" style="margin-bottom:6px">
+      <button class="sec" id="p-mf64">フィンガードラム研究所式</button>
+      <button class="sec" id="p-chrom">左下から順番</button>
+      <button class="sec" id="p-reload">キーボードから読み込む</button>
+    </div>
+    <p class="sub" id="presetnote">プリセットを選んでから、必要なところだけ直すのが早いです。</p>
+
+    <hr>
+    <div class="row">
+      <button class="go" id="write">キーボードに書き込む</button>
+      <span class="sub" id="dupinfo"></span>
+    </div>
+  </div>
+
+  <div id="msg"></div>
+</div>
+
+<h3>困ったとき</h3>
+<p class="sub">
+<strong>つながらない</strong><br>
+Keychron Launcher が開いていませんか。閉じてから、もう一度お試しください。<br><br>
+<strong>音が変わらない</strong><br>
+書き込んだあと、DAW を開き直してみてください。<br><br>
+<strong>元に戻したい</strong><br>
+「フィンガードラム研究所式」を選んで書き込めば、最初の並びに戻ります。
+</p>
+
+<p class="sub" style="margin-top:36px">
+作成: <a href="https://www.youtube.com/@FingerDrumLabo">FingerDrum研究所</a> ／
+<a href="./">書き込みページに戻る</a>
+</p>
+
+</div>
+
+<script>
+const VID = 0x3434, PID = 0x042C, USAGE_PAGE = 0xFF60;
+const ROWS = 10, COLS = 10;
+const PAD_FIRST = 0x7E40;              // ファームウェア側の基準値
+const CMD_GET_BUFFER = 0x12, CMD_SET_KEYCODE = 0x05;
+const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const noteName = n => NAMES[n % 12] + (Math.floor(n / 12) - 2);   // C3 = 60
+
+let device = null;
+let notes = new Array(ROWS * COLS).fill(-1);
+let selected = 0;
+let showBanks = true;   // 4x4 の色分けは研究所式のときだけ
+
+const $ = id => document.getElementById(id);
+const say = (t, c) => { $("msg").className = c || ""; $("msg").textContent = t; };
+
+/* ---------- 通信 ---------- */
+function ask(bytes, timeout = 800) {
+  return new Promise((resolve, reject) => {
+    const onReport = e => {
+      device.removeEventListener("inputreport", onReport);
+      clearTimeout(timer);
+      resolve(new Uint8Array(e.data.buffer));
+    };
+    const timer = setTimeout(() => {
+      device.removeEventListener("inputreport", onReport);
+      reject(new Error("キーボードから応答がありません"));
+    }, timeout);
+    device.addEventListener("inputreport", onReport);
+    const out = new Uint8Array(32);
+    out.set(bytes.slice(0, 32));
+    device.sendReport(0, out).catch(err => {
+      device.removeEventListener("inputreport", onReport);
+      clearTimeout(timer); reject(err);
+    });
+  });
+}
+
+function isMF64(arr) {
+  const ref = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const pad = MF64_PADS[r][c];
+    ref.push(pad <= 80 ? pad + 35 : pad - 65);
+  }
+  return arr.every((v, i) => v === ref[i]);
+}
+
+async function readLayer0() {
+  const total = ROWS * COLS * 2, chunk = 28;
+  const buf = new Uint8Array(total);
+  for (let off = 0; off < total; off += chunk) {
+    const n = Math.min(chunk, total - off);
+    const r = await ask([CMD_GET_BUFFER, (off >> 8) & 0xFF, off & 0xFF, n]);
+    buf.set(r.slice(4, 4 + n), off);
+  }
+  const out = [];
+  for (let i = 0; i < ROWS * COLS; i++) {
+    const kc = (buf[i * 2] << 8) | buf[i * 2 + 1];
+    out.push(kc >= PAD_FIRST && kc <= PAD_FIRST + 127 ? kc - PAD_FIRST : -1);
+  }
+  return out;
+}
+
+/* ---------- 表示 ---------- */
+function bankOf(r, c) {                 // 4x4 のかたまりを色分け
+  if (r < 2 || c > 7) return -1;
+  return (r < 6 ? 0 : 1) + (c < 4 ? 0 : 2);
+}
+function draw() {
+  const g = $("grid"); g.innerHTML = "";
+  const count = {};
+  notes.forEach(n => { if (n >= 0) count[n] = (count[n] || 0) + 1; });
+  let dup = 0;
+  notes.forEach((n, i) => {
+    const r = Math.floor(i / COLS), c = i % COLS;
+    const b = showBanks ? bankOf(r, c) : -1;
+    const el = document.createElement("button");
+    el.className = "pad" + (b >= 0 ? " bank" + b : "") + (i === selected ? " sel" : "");
+    if (n >= 0 && count[n] > 1) { el.classList.add("dup"); dup++; }
+    el.innerHTML = n < 0 ? '<span>—</span>'
+                         : `<span>${n}</span><span class="nm">${noteName(n)}</span>`;
+    el.onclick = () => { selected = i; sync(); };
+    g.appendChild(el);
+  });
+  $("dupinfo").textContent = dup ? `⚠ 同じ音が重なっているマスが ${dup} 個あります` : "";
+  $("dupinfo").className = dup ? "err" : "sub";
+}
+function sync() {
+  const n = notes[selected];
+  const r = Math.floor(selected / COLS), c = selected % COLS;
+  $("where").textContent = `下から ${ROWS - r} 段目 ・ 左から ${c + 1} 列目`;
+  $("note").value = n < 0 ? "" : n;
+  $("notename").textContent = n < 0 ? "—" : noteName(n);
+  draw();
+}
+
+/* ---------- プリセット ---------- */
+const MF64_PADS = [
+ [69,70,71,72,77,78,79,80,100,98],[65,66,67,68,73,74,75,76,99,97],
+ [29,30,31,32,61,62,63,64,96,92],[25,26,27,28,57,58,59,60,95,91],
+ [21,22,23,24,53,54,55,56,94,90],[17,18,19,20,49,50,51,52,93,89],
+ [13,14,15,16,45,46,47,48,88,84],[9,10,11,12,41,42,43,44,87,83],
+ [5,6,7,8,37,38,39,40,86,82],[1,2,3,4,33,34,35,36,85,81]];
+function presetMF64() {
+  notes = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const pad = MF64_PADS[r][c];
+    notes.push(pad <= 80 ? pad + 35 : pad - 65);
+  }
+}
+function presetChrom() {         // 左下から半音ずつ上へ。24〜123 に収まる
+  notes = new Array(100).fill(0);
+  let n = 24;
+  for (let r = ROWS - 1; r >= 0; r--) for (let c = 0; c < COLS; c++)
+    notes[r * COLS + c] = Math.min(127, n++);
+}
+
+/* ---------- 操作 ---------- */
+$("note").addEventListener("input", e => {
+  let v = parseInt(e.target.value, 10);
+  if (isNaN(v)) return;
+  v = Math.max(0, Math.min(127, v));
+  notes[selected] = v; $("notename").textContent = noteName(v); draw();
+});
+$("plus").onclick  = () => { notes[selected] = Math.min(127, (notes[selected] < 0 ? 35 : notes[selected]) + 1); sync(); };
+$("minus").onclick = () => { notes[selected] = Math.max(0,   (notes[selected] < 0 ? 37 : notes[selected]) - 1); sync(); };
+$("p-mf64").onclick  = () => { presetMF64(); showBanks = true;  sync(); say("フィンガードラム研究所式にしました。書き込むボタンを押すと反映されます。"); };
+$("p-chrom").onclick = () => { presetChrom(); showBanks = false; sync(); say("左下から順番に並べました（24〜123）。書き込むボタンを押すと反映されます。"); };
+$("p-reload").onclick = async () => {
+  try { notes = await readLayer0(); showBanks = isMF64(notes); sync();
+        say("キーボードから読み込みました。"); }
+  catch (e) { say("読み込めませんでした。" + e.message, "err"); }
+};
+
+if (!navigator.hid) {
+  $("connect").disabled = true;
+  say("このブラウザでは動きません。Chrome か Edge で開いてください。", "err");
+}
+
+$("connect").onclick = async () => {
+  try {
+    const list = await navigator.hid.requestDevice({
+      filters: [{ vendorId: VID, productId: PID, usagePage: USAGE_PAGE, usage: 0x61 }] });
+    if (!list.length) { say("キーボードが選ばれませんでした。", "err"); return; }
+    device = list[0];
+    if (!device.opened) await device.open();
+    $("state").textContent = "接続中: " + device.productName;
+    notes = await readLayer0();
+    showBanks = isMF64(notes);
+    selected = 90;                    // 左下から始める
+    $("editor").hidden = false;
+    sync();
+    say("読み込みました。マスをクリックして音を変えてください。", "ok");
+  } catch (e) {
+    say("つなげませんでした。\n" + (e.message || e) +
+        "\n\nKeychron Launcher を閉じてから、もう一度お試しください。", "err");
+  }
+};
+
+$("write").onclick = async () => {
+  if (!device) return;
+  $("write").disabled = true;
+  try {
+    for (let i = 0; i < notes.length; i++) {
+      const n = notes[i]; if (n < 0) continue;
+      const kc = PAD_FIRST + n;
+      const r = Math.floor(i / COLS), c = i % COLS;
+      await ask([CMD_SET_KEYCODE, 0, r, c, (kc >> 8) & 0xFF, kc & 0xFF], 1200);
+      if (i % 10 === 9) say(`書き込んでいます... ${i + 1} / 100`);
+    }
+    say("書き込みました。\n\nそのまま叩いて確かめてください。\nDAW によっては開き直しが必要です。", "ok");
+  } catch (e) {
+    say("書き込みに失敗しました。\n" + (e.message || e) +
+        "\n\nUSBを挿し直して、もう一度お試しください。", "err");
+  }
+  $("write").disabled = false;
+};
+</script>
+</body>
+</html>
