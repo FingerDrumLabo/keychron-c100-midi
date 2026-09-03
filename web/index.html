@@ -32,6 +32,9 @@ button.go:disabled { background:#3a4250; color:#7c8797; cursor:not-allowed; }
 .sub { color:var(--sub); font-size:14px; }
 .figwrap { margin:12px 0 4px; max-width:250px; }
 .kbfig { width:100%; height:auto; display:block; }
+.disc { color:var(--sub); font-size:13.5px; line-height:1.75; }
+.disc ul { margin:0; padding-left:1.2em; }
+.disc li { margin:8px 0; }
 details { margin-top:14px; }
 summary { cursor:pointer; color:var(--sub); }
 code { background:#0d0f13; padding:2px 6px; border-radius:4px; font-size:13px; }
@@ -110,7 +113,25 @@ hr { border:0; border-top:1px solid var(--line); margin:32px 0; }
   </p>
 </details>
 
-<p class="sub" style="margin-top:40px">
+<hr>
+
+<h3>免責事項</h3>
+<div class="disc">
+  <ul>
+    <li>このファームウェアは <strong>Keychron 公式のものではありません。</strong>
+        FingerDrum研究所が独自に作成したもので、Keychron 社は内容に関与していません。</li>
+    <li>書き込みは<strong>ご自身の判断と責任</strong>において行ってください。
+        本ページの利用によって生じたいかなる損害についても、作成者は責任を負いません。</li>
+    <li>ファームウェアを書き換えると、<strong>メーカー保証の対象外となる場合があります。</strong></li>
+    <li>動作を確認しているのは <strong>Keychron C100 8K のみ</strong>です。
+        他の機種では使用しないでください。</li>
+    <li>ソースコードは
+        <a href="https://github.com/FingerDrumLabo/keychron-c100-midi">GitHub で公開</a>しています。
+        内容をご確認のうえ、ご利用ください。</li>
+  </ul>
+</div>
+
+<p class="sub" style="margin-top:32px">
 作成: <a href="https://www.youtube.com/@FingerDrumLabo">FingerDrum研究所</a>
 </p>
 
