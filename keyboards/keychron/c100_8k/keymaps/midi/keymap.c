@@ -51,6 +51,52 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 };
 
+/* ---- 単色リアクティブ系エフェクトをグラデーションにする ----
+ *
+ * リアクティブ・マルチネクサスなどは、色を1つしか持っていない。
+ *   hsv.h = rgb_matrix_config.hsv.h + dy / 4;
+ * QMK には時間で色相を回すビルド設定 (RGB_MATRIX_SOLID_REACTIVE_GRADIENT_MODE)
+ * もあるが、それを入れると固定色に戻せなくなるうえ、速度も選べない。
+ *
+ * そこで色相そのものをゆっくり書き換える。エフェクトの実装には手を触れないので、
+ * Keychron Launcher のエフェクト一覧もそのまま使える。
+ * 対象は単色のリアクティブ系だけ。他のエフェクトは今まで通り。
+ *
+ * EEPROM に書くと寿命を削るので、必ず noeeprom 版を使うこと。 */
+#ifdef RGB_MATRIX_ENABLE
+
+#    define HUE_STEP_MS 250   /* 1段進むまでの時間。256段で約64秒かけて一周する */
+
+static bool hue_should_drift(void) {
+    if (!rgb_matrix_is_enabled()) return false;
+    switch (rgb_matrix_get_mode()) {
+#    ifdef ENABLE_RGB_MATRIX_SOLID_REACTIVE_SIMPLE
+        case RGB_MATRIX_SOLID_REACTIVE_SIMPLE:
+#    endif
+#    ifdef ENABLE_RGB_MATRIX_SOLID_REACTIVE_MULTIWIDE
+        case RGB_MATRIX_SOLID_REACTIVE_MULTIWIDE:
+#    endif
+#    ifdef ENABLE_RGB_MATRIX_SOLID_REACTIVE_MULTINEXUS
+        case RGB_MATRIX_SOLID_REACTIVE_MULTINEXUS:
+#    endif
+            return true;
+        default:
+            return false;
+    }
+}
+
+void housekeeping_task_user(void) {
+    static uint16_t last = 0;
+    if (!hue_should_drift()) return;
+    if (timer_elapsed(last) < HUE_STEP_MS) return;
+    last = timer_read();
+    rgb_matrix_sethsv_noeeprom(rgb_matrix_get_hue() + 1,
+                               rgb_matrix_get_sat(),
+                               rgb_matrix_get_val());
+}
+
+#endif /* RGB_MATRIX_ENABLE */
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (keycode >= PAD_FIRST && keycode <= PAD_LAST) {
         uint8_t note = (uint8_t)(keycode - PAD_FIRST);
