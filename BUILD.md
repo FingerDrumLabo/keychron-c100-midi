@@ -44,36 +44,43 @@ git submodule update --init --recursive --depth 1
 Keychron 以外のキーボードなら、そのメーカーのリポジトリか、
 本家 `qmk/qmk_firmware` を使ってください。
 
-### 2. キーマップを置く
-
-このリポジトリの `keymap/` の中身を、キーボードのフォルダにコピーします。
+### 2. このリポジトリを隣に置く
 
 ```
-mkdir -p keyboards/keychron/c100_8k/keymaps/midi
-cp <このリポジトリ>/keymap/* keyboards/keychron/c100_8k/keymaps/midi/
+git clone https://github.com/FingerDrumLabo/keychron-c100-midi.git
 ```
+
+QMKのソースツリーに直接コピーする必要はありません。このリポジトリは
+**QMK external userspace** という形式になっていて、外から読み込ませられます。
 
 ### 3. ビルド
 
 ```
-qmk compile -kb keychron/c100_8k -km midi
+cd keychron-c100-midi
+make build QMK_HOME=~/qmk_keychron
 ```
 
-`.build/keychron_c100_8k_midi.bin` ができます。
+`~/qmk_keychron/keychron_c100_8k_midi.bin` ができます。
+
+`make` を使わない場合は、これと同じことです。
+
+```
+qmk compile -kb keychron/c100_8k -km midi --userspace <このリポジトリ>
+```
 
 ### 4. 書き込む
 
 左上のキーを押しながらUSBを挿して、書き込みモードに入れてから：
 
 ```
-dfu-util -d 2e3c:df11 -a 0 -s 0x08000000:leave -D .build/keychron_c100_8k_midi.bin
+dfu-util -d 2e3c:df11 -a 0 -s 0x08000000:leave -D ~/qmk_keychron/keychron_c100_8k_midi.bin
 ```
 
 ---
 
 ## 中身の説明
 
-`keymap/` には3つのファイルしかありません。
+`keyboards/keychron/c100_8k/keymaps/midi/` には3つのファイルしかありません。
 
 ### rules.mk
 

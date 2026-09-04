@@ -81,6 +81,14 @@ shasum -a 256 c100_8k_MIDI.bin
 1f86b9c6fd3c73be5c6c728cdff3437239e4d1f6e81d344bf82237fd094962d2  c100_8k_STOCK.bin
 ```
 
+### GitHub でもビルドしています
+
+このリポジトリは push のたびに **GitHub Actions が同じソースからビルド**します。
+[Actions タブ](../../actions)で、いつ・どのコミットから作られたかを誰でも確認できます。
+
+配布しているファイルが「作者の手元で作った得体の知れないもの」ではなく、
+**公開されているソースから機械的に作られたもの**だと確かめられます。
+
 ---
 
 ## 音の並び
@@ -175,4 +183,10 @@ QMK対応で、メーカーが設計図を公開していて、有線で繋ぐ�
 
 ## ライセンス
 
-キーマップ部分は MIT。ファームウェア全体は QMK に準じて GPLv2 以降です。
+**GPL-2.0-or-later**（QMK Firmware と同じ）。全文は [LICENSE](LICENSE) にあります。
+
+ビルドされたファームウェアは QMK Firmware を含むため、GPLv2 以降が適用されます。
+このリポジトリのソースをそのまま公開しているのはそのためです。
+
+`web/` 以下のページは [webdfu](https://github.com/devanlai/webdfu)
+(Copyright (c) 2016, Devan Lai / ISC License) を含みます。
