@@ -39,6 +39,14 @@ jobs:
           ls -l out
           sha256sum out/*.bin
 
+      # action-gh-release は既存リリースにファイルを足すだけで、
+      # 前回の成果物を消さない。先にリリースごと削除しておく。
+      - name: 前のリリースを削除
+        run: gh release delete latest --cleanup-tag --yes || true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+
       - name: リリースを差し替え
         uses: softprops/action-gh-release@v3
         with:
