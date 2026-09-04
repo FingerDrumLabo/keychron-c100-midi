@@ -65,14 +65,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * EEPROM に書くと寿命を削るので、必ず noeeprom 版を使うこと。 */
 #ifdef RGB_MATRIX_ENABLE
 
-/* 1段進むまでの時間。Keychron Launcher の速度スライダーで変えられるようにする。
- *   スライダー最大 →  10ms → 一周 約2.6秒
- *   スライダー中間 →  70ms → 一周 約18秒
- *   スライダー最小 → 130ms → 一周 約33秒
- * 書き換えが速すぎると負荷になるので、下限は 10ms で止める。 */
-static uint16_t hue_step_ms(void) {
-    return 10 + (uint16_t)((255 - rgb_matrix_get_speed()) * 120) / 255;
-}
+/* 1段進むまでの時間。256段で一周するので 30ms なら約7.7秒。
+ * Launcher の速度スライダーには載せない。あちらは本来
+ * 「叩いた光が消えるまでの速さ」を決めるもので、
+ * 色の変化と一緒に動いてしまうと片方だけ調整できなくなるため。 */
+#    define HUE_STEP_MS 30
 
 static bool hue_should_drift(void) {
     if (!rgb_matrix_is_enabled()) return false;
@@ -95,7 +92,7 @@ static bool hue_should_drift(void) {
 void housekeeping_task_user(void) {
     static uint16_t last = 0;
     if (!hue_should_drift()) return;
-    if (timer_elapsed(last) < hue_step_ms()) return;
+    if (timer_elapsed(last) < HUE_STEP_MS) return;
     last = timer_read();
     rgb_matrix_sethsv_noeeprom(rgb_matrix_get_hue() + 1,
                                rgb_matrix_get_sat(),
