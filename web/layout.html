@@ -226,6 +226,8 @@ const T = {
              "Each 4×4 block matches one Ableton Drum Rack page (36-51 / 52-67 / 68-83 / 84-99)."],
   drumB:    ["左下から半音ずつ上がっていきます（24〜123）。",
              "Semitones going up from the bottom-left (24-123)."],
+  drumOther:["いま入っている並びです。上のどちらかを押すと作り直せます。",
+             "This is what is currently on the keyboard. Pick one above to rebuild it."],
   rangeA:   ["この設定だと ", "This gives "],
   rangeB:   [" 〜 ", " to "],
   rangeC:   [" の範囲になります。", "."],
@@ -298,6 +300,12 @@ function ask(bytes, timeout = 800) {
   });
 }
 
+function isChrom(arr) {
+  return arr.every((v, i) => {
+    const r = Math.floor(i / COLS), c = i % COLS;
+    return v === Math.min(127, 24 + (ROWS - 1 - r) * COLS + c);
+  });
+}
 function isMF64(arr) {
   const ref = [];
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
@@ -467,6 +475,20 @@ function setMode(mode) {
   $("scalebox").hidden = mode !== "scale";
   $("drumbox").hidden  = mode !== "drums";
 }
+/* 読み込んだ並びを見て、ドラムの選択状態を合わせる。
+ * どちらのプリセットとも一致しないときは、どちらも強調しない。
+ * ただしモード自体はドラムを既定にする。 */
+function reflectDrum() {
+  const labo = isMF64(notes), chrom = !labo && isChrom(notes);
+  if (labo)  drumKind = "labo";
+  if (chrom) drumKind = "chrom";
+  $("d-labo").classList.toggle("on", labo);
+  $("d-chrom").classList.toggle("on", chrom);
+  $("d-note").textContent = labo ? t("drumA") : chrom ? t("drumB") : t("drumOther");
+  showBanks = labo; dupOk = false;
+  setMode("drums");
+}
+
 /* ドラムの並び。研究所式か、左下から半音ずつか。 */
 function setDrum(kind) {
   $("d-labo").classList.toggle("on", kind === "labo");
@@ -492,12 +514,7 @@ $("p-scale").onclick = () => { fillScaleControls(); presetScale(); showBanks = f
   }));
 
 $("p-reload").onclick = async () => {
-  try { notes = await readLayer0(); showBanks = isMF64(notes); sync();
-        dupOk = false;
-        if (isMF64(notes)) { drumKind = "labo"; $("d-labo").classList.add("on");
-                             $("d-chrom").classList.remove("on");
-                             $("d-note").textContent = t("drumA"); setMode("drums"); }
-        else setMode(null);
+  try { notes = await readLayer0(); reflectDrum(); sync();
         say(t("readOk")); }
   catch (e) { say(t("readErr") + e.message, "err"); }
 };
@@ -516,8 +533,7 @@ $("connect").onclick = async () => {
     if (!device.opened) await device.open();
     $("state").textContent = t("connected") + device.productName;
     notes = await readLayer0();
-    showBanks = isMF64(notes);
-    dupOk = false;
+    reflectDrum();
     selected = 90;                    // 左下から始める
     $("editor").hidden = false;
     sync();
@@ -547,6 +563,10 @@ $("write").onclick = async () => {
 
 document.getElementById("btn-ja").onclick = () => setLang(false);
 document.getElementById("btn-en").onclick = () => setLang(true);
+setMode("drums");
+$("d-labo").classList.add("on");
+$("d-note").textContent = t("drumA");
+
 (function () {
   let saved = null;
   try { saved = localStorage.getItem("c100lang"); } catch (e) {}
