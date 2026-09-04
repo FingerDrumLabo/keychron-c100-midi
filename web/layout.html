@@ -45,11 +45,11 @@ input[type=number] { width:80px; padding:8px; border-radius:6px; border:1px soli
   background:#0d0f13; color:var(--fg); font-size:15px; font-family:inherit; }
 select { padding:8px; border-radius:6px; border:1px solid #3a4250;
   background:#0d0f13; color:var(--fg); font-size:15px; font-family:inherit; }
-#scalebox { margin-top:12px; padding:14px; border:1px solid var(--line); border-radius:9px;
-  background:#141821; }
-#scalebox .row { align-items:center; gap:10px; flex-wrap:wrap; }
-#scalebox label { margin-right:2px; }
-.modebtn.on { background:var(--accent); border-color:#ffb199; color:#fff; }
+#scalebox, #drumbox { margin-top:12px; padding:14px; border:1px solid var(--line);
+  border-radius:9px; background:#141821; }
+#scalebox .row, #drumbox .row { align-items:center; gap:10px; flex-wrap:wrap; }
+#scalebox label, #drumbox label { margin-right:2px; }
+.modebtn.on, .drumbtn.on { background:var(--accent); border-color:#ffb199; color:#fff; }
 a { color:var(--accent); }
 #lang { display:flex; gap:0; margin:0 0 22px; }
 #lang button { padding:6px 16px; font-size:13px; font-family:inherit; cursor:pointer;
@@ -123,13 +123,22 @@ code { background:#0d0f13; padding:2px 6px; border-radius:4px; font-size:13px; }
       <button class="sec modebtn" id="p-scale"><span class="ja">スケール</span><span class="en">Scale</span></button>
     </div>
     <p class="sub">
-      <span class="ja"><b>ドラム</b>はフィンガードラム研究所式。4×4のかたまりが Drum Rack の1ページと一致します。<br>
-      <b>スケール</b>は選んだキーの音だけが並びます。右に1つで次の音、上に1つで数音先。
+      <span class="ja"><b>ドラム</b>は叩く用。<b>スケール</b>は選んだキーの音だけが並びます。
+      右に1つで次の音、上に1つで数音先。
       同じ指の形が盤面のどこでも同じ響きになるので、コードもフレーズも形で覚えられます。</span>
-      <span class="en"><b>Drums</b> is the FingerDrum Labo layout — each 4×4 block is one Ableton Drum Rack page.<br>
-      <b>Scale</b> fills the board with one scale. Right is the next note, up jumps several notes ahead,
+      <span class="en"><b>Drums</b> is for playing kits. <b>Scale</b> fills the board with one scale —
+      right is the next note, up jumps several notes ahead,
       so the same shape sounds the same anywhere on the board.</span>
     </p>
+
+    <div id="drumbox" hidden>
+      <div class="row">
+        <label><span class="ja">並び</span><span class="en">Layout</span></label>
+        <button class="sec drumbtn" id="d-labo"><span class="ja">フィンガードラム研究所式</span><span class="en">FingerDrum Labo</span></button>
+        <button class="sec drumbtn" id="d-chrom"><span class="ja">左下から順番</span><span class="en">In order from bottom-left</span></button>
+      </div>
+      <p class="sub" id="d-note" style="margin:10px 0 0"></p>
+    </div>
 
     <div id="scalebox" hidden>
       <div class="row">
@@ -151,9 +160,7 @@ code { background:#0d0f13; padding:2px 6px; border-radius:4px; font-size:13px; }
       <p class="sub" id="s-range" style="margin:10px 0 0"></p>
     </div>
 
-    <h3 style="margin-top:26px"><span class="ja">その他</span><span class="en">Other</span></h3>
-    <div class="row" style="margin-bottom:6px">
-      <button class="sec" id="p-chrom"><span class="ja">左下から順番</span><span class="en">In order from bottom-left</span></button>
+    <div class="row" style="margin-top:22px">
       <button class="sec" id="p-reload"><span class="ja">キーボードから読み込む</span><span class="en">Read from keyboard</span></button>
     </div>
     <p class="sub"><span class="ja">選んでから、必要なところだけ直すのが早いです。</span><span class="en">Start from one of these, then adjust only the pads you need.</span></p>
@@ -215,6 +222,10 @@ const T = {
              "Switched to the scale layout. Press write to apply it."],
   dupScale: ["同じ音が何度も出てきますが、これで正しいです。",
              "The same note appears many times — that is how this layout works."],
+  drumA:    ["4×4のかたまりひとつが Drum Rack の1ページ（36〜51 / 52〜67 / 68〜83 / 84〜99）と一致します。",
+             "Each 4×4 block matches one Ableton Drum Rack page (36-51 / 52-67 / 68-83 / 84-99)."],
+  drumB:    ["左下から半音ずつ上がっていきます（24〜123）。",
+             "Semitones going up from the bottom-left (24-123)."],
   rangeA:   ["この設定だと ", "This gives "],
   rangeB:   [" 〜 ", " to "],
   rangeC:   [" の範囲になります。", "."],
@@ -454,9 +465,23 @@ function setMode(mode) {
   $("p-mf64").classList.toggle("on", mode === "drums");
   $("p-scale").classList.toggle("on", mode === "scale");
   $("scalebox").hidden = mode !== "scale";
+  $("drumbox").hidden  = mode !== "drums";
+}
+/* ドラムの並び。研究所式か、左下から半音ずつか。 */
+function setDrum(kind) {
+  $("d-labo").classList.toggle("on", kind === "labo");
+  $("d-chrom").classList.toggle("on", kind === "chrom");
+  if (kind === "chrom") { presetChrom(); showBanks = false; }
+  else                  { presetMF64();  showBanks = true;  }
+  dupOk = false;
+  $("d-note").textContent = t(kind === "chrom" ? "drumB" : "drumA");
+  setMode("drums"); sync(); say(t(kind === "chrom" ? "presetB" : "presetA"));
 }
 
-$("p-mf64").onclick  = () => { presetMF64(); showBanks = true;  dupOk = false; setMode("drums"); sync(); say(t("presetA")); };
+let drumKind = "labo";
+$("p-mf64").onclick  = () => setDrum(drumKind);
+$("d-labo").onclick  = () => { drumKind = "labo";  setDrum(drumKind); };
+$("d-chrom").onclick = () => { drumKind = "chrom"; setDrum(drumKind); };
 $("p-scale").onclick = () => { fillScaleControls(); presetScale(); showBanks = false; dupOk = true;
                                setMode("scale"); sync(); say(t("presetS")); };
 ["s-root", "s-type", "s-oct", "s-step"].forEach(id =>
@@ -466,10 +491,14 @@ $("p-scale").onclick = () => { fillScaleControls(); presetScale(); showBanks = f
     presetScale(); sync(); say(t("presetS"));
   }));
 
-$("p-chrom").onclick = () => { presetChrom(); showBanks = false; dupOk = false; setMode(null); sync(); say(t("presetB")); };
 $("p-reload").onclick = async () => {
   try { notes = await readLayer0(); showBanks = isMF64(notes); sync();
-        dupOk = false; setMode(isMF64(notes) ? "drums" : null); say(t("readOk")); }
+        dupOk = false;
+        if (isMF64(notes)) { drumKind = "labo"; $("d-labo").classList.add("on");
+                             $("d-chrom").classList.remove("on");
+                             $("d-note").textContent = t("drumA"); setMode("drums"); }
+        else setMode(null);
+        say(t("readOk")); }
   catch (e) { say(t("readErr") + e.message, "err"); }
 };
 
