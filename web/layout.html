@@ -43,6 +43,13 @@ button.sec:hover { background:#333a49; }
 label { color:var(--sub); font-size:14px; }
 input[type=number] { width:80px; padding:8px; border-radius:6px; border:1px solid #3a4250;
   background:#0d0f13; color:var(--fg); font-size:15px; font-family:inherit; }
+select { padding:8px; border-radius:6px; border:1px solid #3a4250;
+  background:#0d0f13; color:var(--fg); font-size:15px; font-family:inherit; }
+#scalebox { margin-top:12px; padding:14px; border:1px solid var(--line); border-radius:9px;
+  background:#141821; }
+#scalebox .row { align-items:center; gap:10px; flex-wrap:wrap; }
+#scalebox label { margin-right:2px; }
+.modebtn.on { background:var(--accent); border-color:#ffb199; color:#fff; }
 a { color:var(--accent); }
 #lang { display:flex; gap:0; margin:0 0 22px; }
 #lang button { padding:6px 16px; font-size:13px; font-family:inherit; cursor:pointer;
@@ -110,13 +117,38 @@ code { background:#0d0f13; padding:2px 6px; border-radius:4px; font-size:13px; }
       </div>
     </div>
 
-    <h3><span class="ja">プリセット</span><span class="en">Presets</span></h3>
+    <h3><span class="ja">モード</span><span class="en">Mode</span></h3>
     <div class="row" style="margin-bottom:6px">
-      <button class="sec" id="p-mf64"><span class="ja">フィンガードラム研究所式</span><span class="en">FingerDrum Labo layout</span></button>
+      <button class="sec modebtn" id="p-mf64"><span class="ja">ドラム</span><span class="en">Drums</span></button>
+      <button class="sec modebtn" id="p-scale"><span class="ja">スケール</span><span class="en">Scale</span></button>
+    </div>
+    <p class="sub">
+      <span class="ja"><b>ドラム</b>はフィンガードラム研究所式。4×4のかたまりが Drum Rack の1ページと一致します。<br>
+      <b>スケール</b>は選んだキーの音だけが並びます。右に1つで次の音、上に1つで数音先。
+      同じ指の形が盤面のどこでも同じ響きになるので、コードもフレーズも形で覚えられます。</span>
+      <span class="en"><b>Drums</b> is the FingerDrum Labo layout — each 4×4 block is one Ableton Drum Rack page.<br>
+      <b>Scale</b> fills the board with one scale. Right is the next note, up jumps several notes ahead,
+      so the same shape sounds the same anywhere on the board.</span>
+    </p>
+
+    <div id="scalebox" hidden>
+      <div class="row">
+        <label><span class="ja">キー</span><span class="en">Key</span></label>
+        <select id="s-root"></select>
+        <label><span class="ja">スケール</span><span class="en">Scale</span></label>
+        <select id="s-type"></select>
+        <label><span class="ja">一番低い音</span><span class="en">Lowest note</span></label>
+        <select id="s-oct"></select>
+      </div>
+      <p class="sub" id="s-range" style="margin:10px 0 0"></p>
+    </div>
+
+    <h3 style="margin-top:26px"><span class="ja">その他</span><span class="en">Other</span></h3>
+    <div class="row" style="margin-bottom:6px">
       <button class="sec" id="p-chrom"><span class="ja">左下から順番</span><span class="en">In order from bottom-left</span></button>
       <button class="sec" id="p-reload"><span class="ja">キーボードから読み込む</span><span class="en">Read from keyboard</span></button>
     </div>
-    <p class="sub"><span class="ja">プリセットを選んでから、必要なところだけ直すのが早いです。</span><span class="en">Start from a preset, then adjust only the pads you need.</span></p>
+    <p class="sub"><span class="ja">選んでから、必要なところだけ直すのが早いです。</span><span class="en">Start from one of these, then adjust only the pads you need.</span></p>
 
     <hr>
     <div class="row">
@@ -171,6 +203,15 @@ const T = {
              "Switched to the FingerDrum Labo layout. Press write to apply it."],
   presetB:  ["左下から順番に並べました（24〜123）。書き込むボタンを押すと反映されます。",
              "Arranged in order from the bottom-left (24-123). Press write to apply it."],
+  presetS:  ["スケール配列にしました。書き込むボタンを押すと反映されます。",
+             "Switched to the scale layout. Press write to apply it."],
+  dupScale: ["同じ音が何度も出てきますが、これで正しいです。",
+             "The same note appears many times — that is how this layout works."],
+  rangeA:   ["この設定だと ", "This gives "],
+  rangeB:   [" 〜 ", " to "],
+  rangeC:   [" の範囲になります。", "."],
+  rangeOver:["　※高すぎて出せないパッドは「—」になります。",
+             "  Pads that would go above the MIDI range are left empty."],
   writing:  ["書き込んでいます... ", "Writing... "],
   wrote:    ["書き込みました。\n\nそのまま叩いて確かめてください。\nDAW によっては開き直しが必要です。",
              "Done.\n\nTry playing it. Some DAWs need to be restarted."],
@@ -192,6 +233,10 @@ function setLang(en) {
   document.getElementById("btn-en").classList.toggle("on", !!en);
   try { localStorage.setItem("c100lang", en ? "en" : "ja"); } catch (e) {}
   if (typeof notes !== "undefined" && notes.length) sync();
+  if (typeof relabelScales === "function" && document.getElementById("s-type").options.length) {
+    relabelScales();
+    if (!document.getElementById("scalebox").hidden) presetScale();
+  }
   const m = document.getElementById("msg");
   if (m) { m.textContent = ""; m.className = ""; }   // 前の言語の文言を残さない
 }
@@ -207,6 +252,7 @@ let device = null;
 let notes = new Array(ROWS * COLS).fill(-1);
 let selected = 0;
 let showBanks = true;   // 4x4 の色分けは研究所式のときだけ
+let dupOk = false;      // スケール配列では同じ音が複数出るのが正しいので警告しない
 
 const $ = id => document.getElementById(id);
 const say = (t, c) => { $("msg").className = c || ""; $("msg").textContent = t; };
@@ -273,14 +319,14 @@ function draw() {
     const b = showBanks ? bankOf(r, c) : -1;
     const el = document.createElement("button");
     el.className = "pad" + (b >= 0 ? " bank" + b : "") + (i === selected ? " sel" : "");
-    if (n >= 0 && count[n] > 1) { el.classList.add("dup"); dup++; }
+    if (!dupOk && n >= 0 && count[n] > 1) { el.classList.add("dup"); dup++; }
     el.innerHTML = n < 0 ? '<span>—</span>'
                          : `<span>${n}</span><span class="nm">${noteName(n)}</span>`;
     el.onclick = () => { selected = i; sync(); };
     g.appendChild(el);
   });
-  $("dupinfo").textContent = dup ? (t("dupA") + dup + t("dupB")) : "";
-  $("dupinfo").className = dup ? "err" : "sub";
+  $("dupinfo").textContent = dupOk ? t("dupScale") : (dup ? (t("dupA") + dup + t("dupB")) : "");
+  $("dupinfo").className = dup && !dupOk ? "err" : "sub";
 }
 function sync() {
   const n = notes[selected];
@@ -305,6 +351,42 @@ function presetMF64() {
     notes.push(pad <= 80 ? pad + 35 : pad - 65);
   }
 }
+/* スケール配列。右に1つで次の音、上に1つで3つ先の音（Ableton Push と同じ考え方）。
+ * 同じ指の形が盤面のどこでも同じ響きになるのがこの並びの利点。 */
+/* 上に1段で何音進むか。音数の少ないスケールで3段ずつ進めると
+ * 盤面が7オクターブ以上になって上のほうが使い物にならないので、
+ * 5〜6音のスケールでは2音ずつにして、どのスケールでも5オクターブ前後に収める。 */
+const stepUp = iv => iv.length >= 7 ? 3 : 2;
+const SCALES = [
+  ["major",    ["メジャー",           "Major"],            [0,2,4,5,7,9,11]],
+  ["minor",    ["ナチュラルマイナー", "Natural minor"],    [0,2,3,5,7,8,10]],
+  ["harmonic", ["ハーモニックマイナー","Harmonic minor"],  [0,2,3,5,7,8,11]],
+  ["dorian",   ["ドリアン",           "Dorian"],           [0,2,3,5,7,9,10]],
+  ["mixo",     ["ミクソリディアン",   "Mixolydian"],       [0,2,4,5,7,9,10]],
+  ["majpent",  ["メジャーペンタトニック","Major pentatonic"],[0,2,4,7,9]],
+  ["minpent",  ["マイナーペンタトニック","Minor pentatonic"],[0,3,5,7,10]],
+  ["blues",    ["ブルース",           "Blues"],            [0,3,5,6,7,10]],
+];
+
+function scaleNote(base, iv, degree) {
+  return base + 12 * Math.floor(degree / iv.length) + iv[degree % iv.length];
+}
+
+function presetScale() {
+  const iv   = SCALES[$("s-type").selectedIndex][2];
+  const base = (+$("s-oct").value) + (+$("s-root").value);
+  notes = new Array(100).fill(-1);
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const n = scaleNote(base, iv, (ROWS - 1 - r) * stepUp(iv) + c);
+    notes[r * COLS + c] = n <= 127 ? n : -1;      // 127を超えるパッドは鳴らさない
+  }
+  const on = notes.filter(n => n >= 0);      // notes[0] は左上＝最高音なので min/max で取る
+  const lo = Math.min(...on), hi = Math.max(...on);
+  const over = notes.some(n => n < 0);
+  $("s-range").textContent = t("rangeA") + noteName(lo) + t("rangeB") + noteName(hi)
+                           + t("rangeC") + (over ? t("rangeOver") : "");
+}
+
 function presetChrom() {         // 左下から半音ずつ上へ。24〜123 に収まる
   notes = new Array(100).fill(0);
   let n = 24;
@@ -321,11 +403,36 @@ $("note").addEventListener("input", e => {
 });
 $("plus").onclick  = () => { notes[selected] = Math.min(127, (notes[selected] < 0 ? 35 : notes[selected]) + 1); sync(); };
 $("minus").onclick = () => { notes[selected] = Math.max(0,   (notes[selected] < 0 ? 37 : notes[selected]) - 1); sync(); };
-$("p-mf64").onclick  = () => { presetMF64(); showBanks = true;  sync(); say(t("presetA")); };
-$("p-chrom").onclick = () => { presetChrom(); showBanks = false; sync(); say(t("presetB")); };
+/* ---------- モード切り替え ---------- */
+function fillScaleControls() {
+  const root = $("s-root"), type = $("s-type"), oct = $("s-oct");
+  if (root.options.length) { relabelScales(); return; }   // 2回目以降は名前だけ更新
+  NAMES.forEach((nm, i) => root.add(new Option(nm, i)));
+  SCALES.forEach(s => type.add(new Option("", "")));
+  relabelScales();
+  for (let o = 0; o <= 4; o++) oct.add(new Option(noteName(12 * o + 12), 12 * o + 12));
+  root.value = 0; type.selectedIndex = 6; oct.value = 36;   // C / マイナーペンタ / C2
+}
+function relabelScales() {
+  const type = $("s-type");
+  SCALES.forEach((s, i) => { type.options[i].text = s[1][LANG]; });
+}
+function setMode(mode) {
+  $("p-mf64").classList.toggle("on", mode === "drums");
+  $("p-scale").classList.toggle("on", mode === "scale");
+  $("scalebox").hidden = mode !== "scale";
+}
+
+$("p-mf64").onclick  = () => { presetMF64(); showBanks = true;  dupOk = false; setMode("drums"); sync(); say(t("presetA")); };
+$("p-scale").onclick = () => { fillScaleControls(); presetScale(); showBanks = false; dupOk = true;
+                               setMode("scale"); sync(); say(t("presetS")); };
+["s-root", "s-type", "s-oct"].forEach(id =>
+  $(id).addEventListener("change", () => { presetScale(); sync(); say(t("presetS")); }));
+
+$("p-chrom").onclick = () => { presetChrom(); showBanks = false; dupOk = false; setMode(null); sync(); say(t("presetB")); };
 $("p-reload").onclick = async () => {
   try { notes = await readLayer0(); showBanks = isMF64(notes); sync();
-        say(t("readOk")); }
+        dupOk = false; setMode(isMF64(notes) ? "drums" : null); say(t("readOk")); }
   catch (e) { say(t("readErr") + e.message, "err"); }
 };
 
@@ -344,6 +451,7 @@ $("connect").onclick = async () => {
     $("state").textContent = t("connected") + device.productName;
     notes = await readLayer0();
     showBanks = isMF64(notes);
+    dupOk = false;
     selected = 90;                    // 左下から始める
     $("editor").hidden = false;
     sync();
