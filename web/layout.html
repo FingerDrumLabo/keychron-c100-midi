@@ -140,6 +140,14 @@ code { background:#0d0f13; padding:2px 6px; border-radius:4px; font-size:13px; }
         <label><span class="ja">一番低い音</span><span class="en">Lowest note</span></label>
         <select id="s-oct"></select>
       </div>
+      <div class="row" style="margin-top:10px">
+        <label><span class="ja">1段上がると</span><span class="en">One row up is</span></label>
+        <select id="s-step">
+          <option value="2"><span></span></option>
+          <option value="3"></option>
+          <option value="oct"></option>
+        </select>
+      </div>
       <p class="sub" id="s-range" style="margin:10px 0 0"></p>
     </div>
 
@@ -353,10 +361,21 @@ function presetMF64() {
 }
 /* スケール配列。右に1つで次の音、上に1つで3つ先の音（Ableton Push と同じ考え方）。
  * 同じ指の形が盤面のどこでも同じ響きになるのがこの並びの利点。 */
-/* 上に1段で何音進むか。音数の少ないスケールで3段ずつ進めると
- * 盤面が7オクターブ以上になって上のほうが使い物にならないので、
- * 5〜6音のスケールでは2音ずつにして、どのスケールでも5オクターブ前後に収める。 */
-const stepUp = iv => iv.length >= 7 ? 3 : 2;
+/* 上に1段で何音進むか。ここを変えると盤面の性格が変わる。
+ *   2音  … 3度ずつ。和音が縦に積める。音域は狭め
+ *   3音  … 4度ずつ。Ableton Push と同じ考え方
+ *   1oct … 1段が1オクターブ。左端がいつもルートになるので迷いにくい
+ * 音数の少ないスケールで3音ずつ進めると7オクターブ以上になってしまうので、
+ * 初期値だけはスケールに合わせて選ぶ。 */
+const STEP_LABELS = [
+  ["2",   ["2音先（3度ずつ・和音が縦に積める）", "2 notes (stacked thirds)"]],
+  ["3",   ["3音先（4度ずつ・Push と同じ）",      "3 notes (fourths, like Push)"]],
+  ["oct", ["1オクターブ（左端がいつもルート）",  "one octave (root always on the left)"]],
+];
+const stepUp = iv => {
+  const v = $("s-step").value;
+  return v === "oct" ? iv.length : +v;
+};
 const SCALES = [
   ["major",    ["メジャー",           "Major"],            [0,2,4,5,7,9,11]],
   ["minor",    ["ナチュラルマイナー", "Natural minor"],    [0,2,3,5,7,8,10]],
@@ -410,12 +429,26 @@ function fillScaleControls() {
   NAMES.forEach((nm, i) => root.add(new Option(nm, i)));
   SCALES.forEach(s => type.add(new Option("", "")));
   relabelScales();
-  for (let o = 0; o <= 4; o++) oct.add(new Option(noteName(12 * o + 12), 12 * o + 12));
-  root.value = 0; type.selectedIndex = 6; oct.value = 36;   // C / マイナーペンタ / C2
+  for (let o = 0; o <= 4; o++) oct.add(new Option("", 12 * o + 12));
+  root.value = 0; type.selectedIndex = 6; oct.value = 36;
+  relabelOctaves(); defaultStep();
+}
+/* 「一番低い音」の選択肢は、選んでいるキーの音名で出す。
+ * D を選んでいるのに C1 と表示されていたのを直したもの。 */
+/* スケールを変えたときの、段の進み方の既定値。
+ * 音数が少ないほど1音あたりの音程が広いので、段の進みを小さくして音域を揃える。 */
+function defaultStep() {
+  $("s-step").value = SCALES[$("s-type").selectedIndex][2].length >= 7 ? "3" : "2";
+}
+function relabelOctaves() {
+  const root = +$("s-root").value, oct = $("s-oct");
+  [...oct.options].forEach(o => { o.text = noteName(+o.value + root); });
 }
 function relabelScales() {
   const type = $("s-type");
   SCALES.forEach((s, i) => { type.options[i].text = s[1][LANG]; });
+  const step = $("s-step");
+  STEP_LABELS.forEach((s, i) => { step.options[i].text = s[1][LANG]; });
 }
 function setMode(mode) {
   $("p-mf64").classList.toggle("on", mode === "drums");
@@ -426,8 +459,12 @@ function setMode(mode) {
 $("p-mf64").onclick  = () => { presetMF64(); showBanks = true;  dupOk = false; setMode("drums"); sync(); say(t("presetA")); };
 $("p-scale").onclick = () => { fillScaleControls(); presetScale(); showBanks = false; dupOk = true;
                                setMode("scale"); sync(); say(t("presetS")); };
-["s-root", "s-type", "s-oct"].forEach(id =>
-  $(id).addEventListener("change", () => { presetScale(); sync(); say(t("presetS")); }));
+["s-root", "s-type", "s-oct", "s-step"].forEach(id =>
+  $(id).addEventListener("change", () => {
+    if (id === "s-root") relabelOctaves();
+    if (id === "s-type") defaultStep();      // スケールに合った段の進み方に戻す
+    presetScale(); sync(); say(t("presetS"));
+  }));
 
 $("p-chrom").onclick = () => { presetChrom(); showBanks = false; dupOk = false; setMode(null); sync(); say(t("presetB")); };
 $("p-reload").onclick = async () => {
