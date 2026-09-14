@@ -72,6 +72,9 @@ qmk compile -kb keychron/c100_8k -km midi --userspace <このリポジトリ>
 
 左上のキーを押しながらUSBを挿して、書き込みモードに入れてから：
 
+> **Windows の場合**：先に WinUSB ドライバが必要です。
+> README の「Windows の場合（最初に一度だけ）」を参照してください。
+
 ```
 dfu-util -d 2e3c:df11 -a 0 -s 0x08000000:leave -D ~/qmk_keychron/keychron_c100_8k_midi.bin
 ```
@@ -200,6 +203,7 @@ Keychron は独自のデバウンス実装を使っていて、ボードの設�
 
 Keychron 公式が配信するファームウェアしか扱えません。自作のファイルを選ぶ機能は
 ありません。`dfu-util` か QMK Toolbox を使ってください。
+Windows ではどちらも、先に WinUSB ドライバが必要です（README 参照）。
 
 ---
 

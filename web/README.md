@@ -17,6 +17,11 @@
 - Vendor ID `0x2e3c` 以外の機器は弾く
 - 内蔵フラッシュ（alt=0）を自動で選ぶ。オプションバイト領域には触らない
 - 書き込み後の `stall` は正常終了として扱う
+- **Windows では WinUSB ドライバが必要。** Chrome の WebUSB は、Windows ではデバイスに
+  WinUSB が割り当てられていないとアクセスできない（Chrome for Developers
+  "Building a device for WebUSB"）。C100 のブートローダー（AT32 DFU, `2E3C:DF11`）は
+  自動では割り当てられないため、利用者に Zadig で入れてもらう。
+  手順はページ上部の「Windows の方は、最初にこちら」に書いてある
 
 書き込み処理は [webdfu](https://github.com/devanlai/webdfu)
 (Copyright (c) 2016, Devan Lai / ISC License) を使用。

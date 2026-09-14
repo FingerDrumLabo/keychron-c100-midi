@@ -48,9 +48,23 @@ hr { border:0; border-top:1px solid var(--line); margin:32px 0; }
 #lang button:first-child { border-radius:7px 0 0 7px; }
 #lang button:last-child { border-radius:0 7px 7px 0; border-left:0; }
 #lang button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+details.win { margin:0; }
+details.win > summary { color:#ffb066; font-weight:700; }
+details.win ol.steps li { margin:10px 0; }
+.win-caution { margin-top:16px; padding:14px 16px; border-radius:8px; background:#2a1414;
+  border:1px solid #5a2a2a; font-size:14px; }
+.win-caution strong { color:#ff8a7a; }
+.win-caution ul { margin:6px 0 0; padding-left:1.2em; }
+.win-caution li { margin:6px 0; }
 html:not(.en) .en { display:none !important; }
 html.en .ja { display:none !important; }
 </style>
+<meta property="og:type" content="website">
+<meta property="og:title" content="Keychron C100 8K を MIDIコントローラーにするページ">
+<meta property="og:description" content="ブラウザで開いてボタンを押すだけ。3分で100キーが100個のMIDIパッドになります。書き込み後はiPhoneでも鳴ります。">
+<meta property="og:image" content="https://murakamirikiya.com/ogp.jpg">
+<meta property="og:url" content="https://murakamirikiya.com/c100/">
+<meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
 <div class="wrap">
@@ -66,7 +80,7 @@ html.en .ja { display:none !important; }
   <div class="ja">
     <strong>必要なもの</strong>
     <ul style="margin:10px 0 0; padding-left:1.2em;">
-      <li><strong>パソコン</strong>（Windows / Mac）。スマホ・タブレットでは書き込めません</li>
+      <li><strong>パソコン</strong>（Windows / Mac）。スマホ・タブレットでは書き込めません<div class="sub" style="margin-top:4px">※ <strong>Windows は最初に一度だけドライバの準備が必要です</strong>（すぐ下の説明を参照）</div><div class="sub" style="margin-top:4px">※ Android は未検証です。仕組みの上では書き込める可能性がありますが、給電できるOTGアダプタが必要です。うまくいった方がいたら教えてください</div></li>
       <li><strong>Chrome か Edge</strong>。Safari と Firefox では動きません</li>
       <li><strong>Keychron C100 8K</strong> 本体</li>
       <li><strong>USBケーブル</strong>（付属のもので大丈夫です）</li>
@@ -76,13 +90,70 @@ html.en .ja { display:none !important; }
   <div class="en">
     <strong>What you need</strong>
     <ul style="margin:10px 0 0; padding-left:1.2em;">
-      <li>A <strong>computer</strong> (Windows / Mac). Phones and tablets cannot flash</li>
+      <li>A <strong>computer</strong> (Windows / Mac). Phones and tablets cannot flash<div class="sub" style="margin-top:4px"><strong>Windows needs a one-time driver setup first</strong> (see just below)</div><div class="sub" style="margin-top:4px">Android is untested. It may work in principle, but you would need a powered OTG adapter. Let me know if you get it working</div></li>
       <li><strong>Chrome or Edge</strong>. Safari and Firefox will not work</li>
       <li>Your <strong>Keychron C100 8K</strong></li>
       <li>A <strong>USB cable</strong> (the one in the box is fine)</li>
       <li>About <strong>3 minutes</strong>. You only need the internet to load this page</li>
     </ul>
   </div>
+</div>
+
+<div class="card warn" id="windows">
+  <details class="win ja">
+    <summary>Windows の方は、最初にこちら（1回だけ）</summary>
+    <p style="margin:12px 0 4px">Windows では、書き込みモードの C100 を Chrome が扱うために
+      <strong>WinUSB</strong> というドライバが必要です。自動では入らないので、最初に一度だけ入れてください。
+      <span class="sub">Mac では不要です。</span></p>
+    <ol class="steps">
+      <li><a href="https://zadig.akeo.ie/" target="_blank" rel="noopener"><strong>Zadig</strong></a> をダウンロードして起動します</li>
+      <li>C100 を<strong>書き込みモード</strong>にします<br>
+        <span class="sub">USBを抜く → 左上の角のキーを押したまま挿す → 3秒ほどで離す</span></li>
+      <li>Zadig の一覧から <strong>DFU in FS Mode</strong> を選びます<br>
+        <span class="sub">見当たらない場合は、メニューの <strong>Options → List All Devices</strong> にチェックを入れてください</span></li>
+      <li>USB ID が <strong>2E3C</strong> と <strong>DF11</strong> になっていることを<strong>必ず確認</strong>します</li>
+      <li>右側のドライバを <strong>WinUSB</strong> にして、<strong>Install Driver</strong>（または Replace Driver）を押します</li>
+      <li>終わったら USB を抜き、下の手順どおりに書き込んでください</li>
+    </ol>
+    <div class="win-caution">
+      <strong>必ず守ってください</strong>
+      <ul>
+        <li>USB ID が <strong>2E3C / DF11 以外なら、絶対にインストールしないでください。</strong>
+          キーボード本体のドライバを置き換えてしまい、文字が打てなくなることがあります</li>
+        <li>List All Devices にしても DFU in FS Mode が出てこない場合は、書き込みモードに入っていません。
+          ドライバは入れずに、手順2からやり直してください</li>
+        <li>このドライバは書き込みモードのときだけ使われます。<strong>普段キーボードとして使うときには影響しません。</strong>
+          入れるのは最初の1回だけです</li>
+      </ul>
+    </div>
+  </details>
+  <details class="win en">
+    <summary>On Windows, do this first (one time only)</summary>
+    <p style="margin:12px 0 4px">On Windows, Chrome needs a driver called <strong>WinUSB</strong>
+      before it can see the C100 in flashing mode. It is not installed automatically, so set it up once.
+      <span class="sub">Mac does not need this.</span></p>
+    <ol class="steps">
+      <li>Download and open <a href="https://zadig.akeo.ie/" target="_blank" rel="noopener"><strong>Zadig</strong></a></li>
+      <li>Put the C100 into <strong>flashing mode</strong><br>
+        <span class="sub">Unplug → hold the top-left key while plugging in → let go after about 3 seconds</span></li>
+      <li>In Zadig, select <strong>DFU in FS Mode</strong><br>
+        <span class="sub">If it is not listed, tick <strong>Options → List All Devices</strong></span></li>
+      <li><strong>Make sure</strong> the USB ID reads <strong>2E3C</strong> and <strong>DF11</strong></li>
+      <li>Set the driver on the right to <strong>WinUSB</strong> and click <strong>Install Driver</strong> (or Replace Driver)</li>
+      <li>Unplug, then follow the steps below to flash</li>
+    </ol>
+    <div class="win-caution">
+      <strong>Please read</strong>
+      <ul>
+        <li><strong>If the USB ID is not 2E3C / DF11, do not install.</strong>
+          You could replace your keyboard's own driver and stop it from typing</li>
+        <li>If DFU in FS Mode still does not appear with List All Devices, the board is not in flashing mode.
+          Do not install anything — go back to step 2</li>
+        <li>This driver is only used in flashing mode. <strong>It does not affect normal typing.</strong>
+          You only need to do this once</li>
+      </ul>
+    </div>
+  </details>
 </div>
 
 <div class="card warn">
@@ -162,9 +233,11 @@ Keychron 公式のキーマップをそのままビルドしたものを書き�
   <summary>うまくいかないとき</summary>
   <p class="sub">
   <strong>一覧に何も出てこない</strong><br>
-  キーボードは <strong>DFU in FS Mode</strong> という名前で出てきます。何も出てこない場合は
-  書き込みモードに入れていません。USBを抜いて、左上のキーを押しながら挿し直してください。
-  何度でもやり直せます。<br><br>
+  キーボードは <strong>DFU in FS Mode</strong> という名前で出てきます。<br>
+  <strong>Windows の場合</strong>は、ドライバが入っていない可能性が高いです。
+  <a href="#windows">ページ上部の「Windows の方は、最初にこちら」</a>を先に行ってください。<br>
+  Mac の場合や、ドライバを入れても出てこない場合は、書き込みモードに入れていません。
+  USBを抜いて、左上のキーを押しながら挿し直してください。何度でもやり直せます。<br><br>
   <strong>途中で止まった</strong><br>
   キーボードは書き込みモードのままです。USBを挿し直して、もう一度やってください。<br><br>
   <strong>Safari で開いている</strong><br>
@@ -192,7 +265,8 @@ Keychron 公式のキーマップをそのままビルドしたものを書き�
 <p class="sub">
 Mac（Apple Silicon / Intel の両方）、macOS 14 以降、Google Chrome で
 書き込みできることを確認しています。<br>
-Windows でも同じ手順で動作するはずですが、作者の環境では未確認です。
+Windows では、最初に WinUSB ドライバの準備が必要です（ページ上部を参照）。
+Windows での動作は作者の環境では未確認です。
 </p>
 
 <h3>免責事項</h3>
@@ -234,9 +308,11 @@ It writes a build of Keychron's own stock keymap.</p>
   <summary>If it doesn't work</summary>
   <p class="sub">
   <strong>Nothing appears in the list</strong><br>
-  The keyboard shows up as <strong>DFU in FS Mode</strong>. If nothing appears, it is not in
-  flashing mode. Unplug it, hold the top-left key, and plug it back in. You can retry as
-  many times as you like.<br><br>
+  The keyboard shows up as <strong>DFU in FS Mode</strong>.<br>
+  <strong>On Windows</strong>, the driver is most likely missing — do
+  <a href="#windows">“On Windows, do this first”</a> at the top of the page.<br>
+  On Mac, or if it still does not appear after installing the driver, it is not in flashing mode.
+  Unplug it, hold the top-left key, and plug it back in. You can retry as many times as you like.<br><br>
   <strong>It stopped partway through</strong><br>
   The keyboard is still in flashing mode. Plug it back in and try again.<br><br>
   <strong>You are using Safari</strong><br>
@@ -264,7 +340,8 @@ It writes a build of Keychron's own stock keymap.</p>
 <p class="sub">
 Confirmed working on Mac (both Apple Silicon and Intel), macOS 14 or later, with
 Google Chrome.<br>
-It should work the same way on Windows, but the author has not been able to test that.
+On Windows, a one-time WinUSB driver setup is required first (see the top of the page).
+The author has not been able to test on Windows.
 </p>
 
 <h3>Disclaimer</h3>
@@ -302,6 +379,25 @@ It should work the same way on Windows, but the author has not been able to test
     <span class="ja">押すと確認が出ます。書き込むファームウェアの SHA-256:<br><code>fef3d684247055a99d45f0cbf12149226652b97b8c5c394bd762d35e5ad5944f</code></span>
     <span class="en">You will be asked to confirm. SHA-256 of the firmware it writes:<br><code>fef3d684247055a99d45f0cbf12149226652b97b8c5c394bd762d35e5ad5944f</code></span>
   </p>
+</div>
+
+<div class="card" style="margin-top:32px">
+  <div class="ja">
+    <strong>音の並びを変えたいときは</strong>
+    <p class="sub" style="margin:10px 0 0">
+      <a href="layout.html"><b>MIDI配列変更ページ</b></a> から、
+      どのキーがどの音を出すかを自由に変えられます。<br>
+      <b>書き込みモードに入る必要はありません。</b>普通に挿したままブラウザから変更できます。
+    </p>
+  </div>
+  <div class="en">
+    <strong>Want to change the notes?</strong>
+    <p class="sub" style="margin:10px 0 0">
+      The <a href="layout.html"><b>MIDI layout editor</b></a> lets you change
+      which note each key sends.<br>
+      <b>No flashing mode needed</b> — just leave the keyboard plugged in normally.
+    </p>
+  </div>
 </div>
 
 <p class="sub" style="margin-top:32px">
