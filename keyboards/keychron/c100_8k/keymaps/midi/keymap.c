@@ -101,6 +101,108 @@ void housekeeping_task_user(void) {
 
 #endif /* RGB_MATRIX_ENABLE */
 
+/* ---- ソフトから送られてきたノートでキーを光らせる ----
+ *
+ * QMK の MIDI は受信の仕組みも最初から持っている（usb_descriptor.c にホスト→デバイスの
+ * エンドポイントがあり、keyboard.c が midi_task() を回している）。使っていなかっただけ。
+ *
+ * ここでノートオンを受け取り、そのノートが割り当てられているキーを光らせる。
+ * VJソフトや DAW から「どのパッドに何が入っているか」を手元に表示できる。
+ *
+ * ノート番号 → キー位置の対応は、配列変更ページで書き換えられる（VIA の動的キーマップ）。
+ * そのため対応表は固定で持たず、1秒ごとに作り直す。
+ * 毎フレーム引き直すと EEPROM 読み出しが100回走って重い。 */
+#ifdef RGB_MATRIX_ENABLE
+
+/* note off が来なかった場合の保険。つけっぱなしを防ぐ */
+#    define FEEDBACK_TIMEOUT_MS 30000
+/* 対応表を作り直す間隔 */
+#    define FEEDBACK_MAP_MS 1000
+
+static uint8_t  fb_vel[128];   /* 0 = 消灯、1〜127 = 点灯（値が色になる） */
+static uint16_t fb_at[128];    /* 点灯した時刻 */
+static uint8_t  fb_led[128];   /* ノート番号 → LED番号。NO_LED = 割り当てなし */
+static uint16_t fb_map_at   = 0;
+static bool     fb_map_ready = false;
+static bool     fb_lit      = false;
+
+static void fb_rebuild_map(void) {
+    memset(fb_led, NO_LED, sizeof(fb_led));
+    uint8_t layer = get_highest_layer(layer_state);
+    for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+        for (uint8_t c = 0; c < MATRIX_COLS; c++) {
+            uint8_t led = g_led_config.matrix_co[r][c];
+            if (led == NO_LED) continue;
+            uint16_t kc = keymap_key_to_keycode(layer, (keypos_t){.col = c, .row = r});
+            if (kc >= PAD_FIRST && kc <= PAD_LAST) fb_led[kc - PAD_FIRST] = led;
+        }
+    }
+    fb_map_at    = timer_read();
+    fb_map_ready = true;
+}
+
+/* コールバックの第1引数はステータスバイト（0x90|チャンネル）。
+ * チャンネルは問わず、どのチャンネルで送られても受け取る。 */
+static void fb_note_on(MidiDevice *dev, uint8_t status, uint8_t note, uint8_t vel) {
+    if (note > 127) return;
+    if (vel == 0) { /* ベロシティ0のノートオンは、ノートオフとして扱うのが MIDI の作法 */
+        fb_vel[note] = 0;
+        return;
+    }
+    fb_vel[note] = vel;
+    fb_at[note]  = timer_read();
+    fb_lit       = true;
+}
+
+static void fb_note_off(MidiDevice *dev, uint8_t status, uint8_t note, uint8_t vel) {
+    if (note <= 127) fb_vel[note] = 0;
+}
+
+static void fb_cc(MidiDevice *dev, uint8_t status, uint8_t num, uint8_t val) {
+    /* 120 = All Sound Off、123 = All Notes Off。まとめて消す */
+    if (num == 120 || num == 123) memset(fb_vel, 0, sizeof(fb_vel));
+}
+
+void keyboard_post_init_user(void) {
+    memset(fb_vel, 0, sizeof(fb_vel));
+    memset(fb_led, NO_LED, sizeof(fb_led));
+    midi_register_noteon_callback(&midi_device, fb_note_on);
+    midi_register_noteoff_callback(&midi_device, fb_note_off);
+    midi_register_cc_callback(&midi_device, fb_cc);
+}
+
+bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
+    if (!fb_lit) return true;
+
+    if (!fb_map_ready || timer_elapsed(fb_map_at) > FEEDBACK_MAP_MS) fb_rebuild_map();
+
+    bool    still = false;
+    uint8_t val   = rgb_matrix_get_val();
+    if (val < 32) val = 32; /* 明るさを絞っていても、光っていることが分かるように */
+
+    for (uint8_t note = 0; note < 128; note++) {
+        uint8_t v = fb_vel[note];
+        if (!v) continue;
+        if (timer_elapsed(fb_at[note]) > FEEDBACK_TIMEOUT_MS) {
+            fb_vel[note] = 0;
+            continue;
+        }
+        still = true;
+        uint8_t led = fb_led[note];
+        if (led == NO_LED || led < led_min || led >= led_max) continue;
+
+        /* ベロシティを色にする。送る側が 1〜127 で色を選べる */
+        HSV hsv = {.h = (uint8_t)((v - 1) * 2), .s = 255, .v = val};
+        RGB rgb = hsv_to_rgb(hsv);
+        rgb_matrix_set_color(led, rgb.r, rgb.g, rgb.b);
+    }
+
+    fb_lit = still;
+    return true;
+}
+
+#endif /* RGB_MATRIX_ENABLE */
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (keycode >= PAD_FIRST && keycode <= PAD_LAST) {
         uint8_t note = (uint8_t)(keycode - PAD_FIRST);
