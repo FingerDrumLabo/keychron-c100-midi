@@ -184,13 +184,26 @@ void keyboard_post_init_user(void) {
 }
 
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
-    /* 起動から2秒、左上（LED 0）を白く光らせる = このファームが動いている印 */
-    if (timer_elapsed(dbg_boot_at) < 2000 && led_min == 0) {
-        rgb_matrix_set_color(0, 255, 255, 255);
+    /* ===== 切り分け用のテストモード（確認できたら丸ごと戻す） =====
+     * 書き込み直後は通常のエフェクトが派手に光るため、印を1〜2個灯しても埋もれる。
+     * そこで一旦すべて消し、テスト用の表示だけを出す。
+     * 真っ暗にならない場合は、このファームが動いていない（書き込めていない）。 */
+    for (uint8_t i = led_min; i < led_max; i++) {
+        rgb_matrix_set_color(i, 0, 0, 0);
     }
-    /* MIDI を受け取ってから1秒、右上（LED 9）を緑に = 受信できている印 */
-    if (dbg_rx_seen && timer_elapsed(dbg_rx_at) < 1000 && 9 >= led_min && 9 < led_max) {
-        rgb_matrix_set_color(9, 0, 255, 0);
+
+    /* 起動から2秒、全体をうっすら青く = 起動した印 */
+    if (timer_elapsed(dbg_boot_at) < 2000) {
+        for (uint8_t i = led_min; i < led_max; i++) {
+            rgb_matrix_set_color(i, 0, 0, 60);
+        }
+    }
+
+    /* MIDI を何か受け取ってから1秒、一番上の列（LED 0〜9）を緑に = 届いている印 */
+    if (dbg_rx_seen && timer_elapsed(dbg_rx_at) < 1000) {
+        for (uint8_t i = 0; i < 10; i++) {
+            if (i >= led_min && i < led_max) rgb_matrix_set_color(i, 0, 255, 0);
+        }
     }
 
     if (!fb_lit) return true;
@@ -199,7 +212,7 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
 
     bool    still = false;
     uint8_t val   = rgb_matrix_get_val();
-    if (val < 32) val = 32; /* 明るさを絞っていても、光っていることが分かるように */
+    if (val < 32) val = 32;
 
     for (uint8_t note = 0; note < 128; note++) {
         uint8_t v = fb_vel[note];
@@ -212,7 +225,6 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         uint8_t led = fb_led[note];
         if (led == NO_LED || led < led_min || led >= led_max) continue;
 
-        /* ベロシティを色にする。送る側が 1〜127 で色を選べる */
         HSV hsv = {.h = (uint8_t)((v - 1) * 2), .s = 255, .v = val};
         RGB rgb = hsv_to_rgb(hsv);
         rgb_matrix_set_color(led, rgb.r, rgb.g, rgb.b);
