@@ -123,16 +123,6 @@ static uint8_t  fb_vel[128];   /* 0 = 消灯、1〜127 = 点灯（値が色に�
 static uint16_t fb_at[128];    /* 点灯した時刻 */
 static uint8_t  fb_led[128];   /* ノート番号 → LED番号。NO_LED = 割り当てなし */
 static uint16_t fb_map_at   = 0;
-
-/* ---- 切り分け用の表示（確認できたら消す） ---- */
-static uint16_t dbg_boot_at = 0;   /* 起動時刻。2秒間ここで左上を光らせる */
-static uint16_t dbg_rx_at   = 0;   /* 最後に MIDI を受け取った時刻 */
-static bool     dbg_rx_seen = false;
-
-static void dbg_catchall(MidiDevice *dev, uint16_t cnt, uint8_t b0, uint8_t b1, uint8_t b2) {
-    dbg_rx_at   = timer_read();
-    dbg_rx_seen = true;
-}
 static bool     fb_map_ready = false;
 static bool     fb_lit      = false;
 
@@ -176,43 +166,19 @@ static void fb_cc(MidiDevice *dev, uint8_t status, uint8_t num, uint8_t val) {
 void keyboard_post_init_user(void) {
     memset(fb_vel, 0, sizeof(fb_vel));
     memset(fb_led, NO_LED, sizeof(fb_led));
-    dbg_boot_at = timer_read();
-    midi_register_catchall_callback(&midi_device, dbg_catchall);
     midi_register_noteon_callback(&midi_device, fb_note_on);
     midi_register_noteoff_callback(&midi_device, fb_note_off);
     midi_register_cc_callback(&midi_device, fb_cc);
 }
 
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
-    /* ===== 切り分け用のテストモード（確認できたら丸ごと戻す） =====
-     * 書き込み直後は通常のエフェクトが派手に光るため、印を1〜2個灯しても埋もれる。
-     * そこで一旦すべて消し、テスト用の表示だけを出す。
-     * 真っ暗にならない場合は、このファームが動いていない（書き込めていない）。 */
-    for (uint8_t i = led_min; i < led_max; i++) {
-        rgb_matrix_set_color(i, 0, 0, 0);
-    }
-
-    /* 起動から2秒、全体をうっすら青く = 起動した印 */
-    if (timer_elapsed(dbg_boot_at) < 2000) {
-        for (uint8_t i = led_min; i < led_max; i++) {
-            rgb_matrix_set_color(i, 0, 0, 60);
-        }
-    }
-
-    /* MIDI を何か受け取ってから1秒、一番上の列（LED 0〜9）を緑に = 届いている印 */
-    if (dbg_rx_seen && timer_elapsed(dbg_rx_at) < 1000) {
-        for (uint8_t i = 0; i < 10; i++) {
-            if (i >= led_min && i < led_max) rgb_matrix_set_color(i, 0, 255, 0);
-        }
-    }
-
     if (!fb_lit) return true;
 
     if (!fb_map_ready || timer_elapsed(fb_map_at) > FEEDBACK_MAP_MS) fb_rebuild_map();
 
     bool    still = false;
     uint8_t val   = rgb_matrix_get_val();
-    if (val < 32) val = 32;
+    if (val < 32) val = 32; /* 明るさを絞っていても、光っていることが分かるように */
 
     for (uint8_t note = 0; note < 128; note++) {
         uint8_t v = fb_vel[note];
@@ -225,6 +191,7 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         uint8_t led = fb_led[note];
         if (led == NO_LED || led < led_min || led >= led_max) continue;
 
+        /* ベロシティを色にする。送る側が 1〜127 で色を選べる */
         HSV hsv = {.h = (uint8_t)((v - 1) * 2), .s = 255, .v = val};
         RGB rgb = hsv_to_rgb(hsv);
         rgb_matrix_set_color(led, rgb.r, rgb.g, rgb.b);
