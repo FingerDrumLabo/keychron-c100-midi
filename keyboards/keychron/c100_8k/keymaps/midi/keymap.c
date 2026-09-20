@@ -109,6 +109,15 @@ void housekeeping_task_user(void) {
  * ここでノートオンを受け取り、そのノートが割り当てられているキーを光らせる。
  * VJソフトや DAW から「どのパッドに何が入っているか」を手元に表示できる。
  *
+ * ★制限（2026-09-20 実機で確認）:
+ *   Keychron Launcher でライティングを「なし」にしていると光らない。
+ *   rgb_matrix.c の rgb_task で
+ *       uint8_t effect = ... !rgb_matrix_config.enable ? 0 : rgb_matrix_config.mode;
+ *       if (effect) { rgb_matrix_indicators_advanced(...); }
+ *   となっており、mode が 0（なし）だと indicators 自体が呼ばれないため。QMK本体の作りなので
+ *   ファーム側では回避できない。利用者には「なし以外のエフェクトを選ぶ」と案内すること。
+ *   見た目を消したい場合は「単色 + 明るさ最小」にすると、実質消灯のままMIDI表示だけ出せる。
+ *
  * ノート番号 → キー位置の対応は、配列変更ページで書き換えられる（VIA の動的キーマップ）。
  * そのため対応表は固定で持たず、1秒ごとに作り直す。
  * 毎フレーム引き直すと EEPROM 読み出しが100回走って重い。 */
